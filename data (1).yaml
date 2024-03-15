@@ -1,0 +1,12 @@
+names:
+- Yellowball
+nc: 1
+roboflow:
+  license: CC BY 4.0
+  project: pickandplaceextra
+  url: https://universe.roboflow.com/engineers-ubzh2/pickandplaceextra/dataset/5
+  version: 5
+  workspace: engineers-ubzh2
+test: ../test/images
+train: pickandplaceextra-5/train/images
+val: pickandplaceextra-5/valid/images

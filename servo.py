@@ -5,7 +5,7 @@ import time
 import RPi.GPIO as GPIO
 
 class ObjectDetection:
-    def _init_(self, capture_index, model_name):
+    def __init__(self, capture_index, model_name):
         """
         Initializes the class with capture index and model name.
         :param capture_index: Index of the video capture device.
@@ -20,8 +20,11 @@ class ObjectDetection:
         # Initialize GPIO for servo control
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(7, GPIO.OUT)
-        self.servo = GPIO.PWM(7, 50)  # Pin 7 for servo, pulse 50Hz
-        self.servo.start(0)
+        GPIO.setup(11, GPIO.OUT)
+        self.servo1 = GPIO.PWM(7, 50)  # Pin 7 for servo1, pulse 50Hz
+        self.servo2 = GPIO.PWM(11, 50)  # Pin 11 for servo2, pulse 50Hz
+        self.servo1.start(0)
+        self.servo2.start(0)
 
     def load_model(self, model_name):
         """
@@ -80,24 +83,32 @@ class ObjectDetection:
     def perform_task(self):
         """
         Function to perform the specific task once an object is detected.
-        In this case, the task is to move a servo motor.
+        In this case, the task is to move two servo motors sequentially.
         """
         print("Performing the task...")
-        temp=float(input("Enter the angle to which you want to change the servo 3(Joint servo) to"))
-        temp1=float(input("Enter the angle to which you want to change the servo 6(grapple) to"))
-        steps=int(input("Enter the number of steps you want the motion to happen in"))
-                # Example: Rotate servo from 0 to 180 degrees and back to 0
-        for angle in range(0, temp+1, steps):  # Rotate from 0 to 180 degrees
+        # Example: Rotate servo1 from 0 to 180 degrees and back to 0
+        for angle in range(0, 181, 1):  # Rotate from 0 to 180 degrees
             duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
             self.servo1.ChangeDutyCycle(duty_cycle)
             time.sleep(0.01)
-      #  for angle in range(temp+1, -1, -steps):  # Rotate back from 180 to 0 degrees
-      #      duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
-       #     self.servo1.ChangeDutyCycle(duty_cycle)
-        #    time.sleep(0.01)
+        for angle in range(180, -1, -1):  # Rotate back from 180 to 0 degrees
+            duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
+            self.servo1.ChangeDutyCycle(duty_cycle)
+            time.sleep(0.01)
+
+        # Example: Rotate servo2 from 0 to 180 degrees and back to 0
+        for angle in range(0, 181, 1):  # Rotate from 0 to 180 degrees
+            duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
+            self.servo2.ChangeDutyCycle(duty_cycle)
+            time.sleep(0.01)
+        for angle in range(180, -1, -1):  # Rotate back from 180 to 0 degrees
+            duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
+            self.servo2.ChangeDutyCycle(duty_cycle)
+            time.sleep(0.01)
+
         print("Task completed.")
 
-    def _call_(self):
+    def __call__(self):
         """
         This function is called when the class is executed. It runs the loop to read the video frame by frame,
         and write the output into a new file.
@@ -127,7 +138,8 @@ class ObjectDetection:
 
         cap.release()
         cv2.destroyAllWindows()
-        self.servo.stop()
+        self.servo1.stop()
+        self.servo2.stop()
         GPIO.cleanup()
 
 # Create a new object and execute.

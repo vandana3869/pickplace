@@ -1,4 +1,3 @@
-
 import torch
 import numpy as np
 import cv2
@@ -6,7 +5,7 @@ import time
 import RPi.GPIO as GPIO
 
 class ObjectDetection:
-    def __init__(self, capture_index, model_name):
+    def _init_(self, capture_index, model_name):
         """
         Initializes the class with capture index and model name.
         :param capture_index: Index of the video capture device.
@@ -62,9 +61,11 @@ class ObjectDetection:
         labels, cord = results
         n = len(labels)
         x_shape, y_shape = frame.shape[1], frame.shape[0]
+        object_detected = False
+
         for i in range(n):
             row = cord[i]
-            if row[4] >= 0.2:  # Check for confidence threshold (optional)
+            if row[4] >= 0.5:  # Check for confidence threshold of 0.5
                 confidence = float(row[4])
                 x1, y1, x2, y2 = int(row[0]*x_shape), int(row[1]*y_shape), int(row[2]*x_shape), int(row[3]*y_shape)
                 bgr = (0, 255, 0)
@@ -72,7 +73,9 @@ class ObjectDetection:
                 # Combine label and confidence level for display
                 text = f"{self.class_to_label(labels[i])} ({confidence:.2f})"  # Format confidence to 2 decimal places
                 cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, bgr, 2)
-        return frame
+                object_detected = True
+
+        return frame, object_detected
 
     def perform_task(self):
         """
@@ -80,18 +83,21 @@ class ObjectDetection:
         In this case, the task is to move a servo motor.
         """
         print("Performing the task...")
-        # Example: Rotate servo from 0 to 180 degrees and back to 0
-        for angle in range(0, 181, 1):  # Rotate from 0 to 180 degrees
+        temp=float(input("Enter the angle to which you want to change the servo 3(Joint servo) to"))
+        temp1=float(input("Enter the angle to which you want to change the servo 6(grapple) to"))
+        steps=int(input("Enter the number of steps you want the motion to happen in"))
+                # Example: Rotate servo from 0 to 180 degrees and back to 0
+        for angle in range(0, temp+1, steps):  # Rotate from 0 to 180 degrees
             duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
-            self.servo.ChangeDutyCycle(duty_cycle)
+            self.servo1.ChangeDutyCycle(duty_cycle)
             time.sleep(0.01)
-        for angle in range(180, -1, -1):  # Rotate back from 180 to 0 degrees
-            duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
-            self.servo.ChangeDutyCycle(duty_cycle)
-            time.sleep(0.01)
+      #  for angle in range(temp+1, -1, -steps):  # Rotate back from 180 to 0 degrees
+      #      duty_cycle = ((angle / 180) * 10) + 2  # Convert angle to duty cycle
+       #     self.servo1.ChangeDutyCycle(duty_cycle)
+        #    time.sleep(0.01)
         print("Task completed.")
 
-    def __call__(self):
+    def _call_(self):
         """
         This function is called when the class is executed. It runs the loop to read the video frame by frame,
         and write the output into a new file.
@@ -105,16 +111,15 @@ class ObjectDetection:
             if not ret:
                 break
             results = self.score_frame(frame)
-            frame = self.plot_boxes(results, frame)
+            frame, object_detected = self.plot_boxes(results, frame)
             end_time = time.perf_counter()
             fps = 1 / np.round(end_time - start_time, 3)
             cv2.putText(frame, f'FPS: {int(fps)}', (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
             cv2.imshow("img", frame)
 
-            # Check for specific object detection (e.g., person with label 0)
-            labels, _ = results
-            if 0 in labels:  # Assuming '0' is the label index for the desired object
-                print("Object detected. Entering task loop.")
+            # Check if an object with confidence > 0.5 is detected
+            if object_detected:
+                print("Object detected with confidence > 0.5. Entering task loop.")
                 self.perform_task()  # Enter task loop upon detection
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -128,4 +133,3 @@ class ObjectDetection:
 # Create a new object and execute.
 detection = ObjectDetection(capture_index=0, model_name="best.pt")
 detection()
-
